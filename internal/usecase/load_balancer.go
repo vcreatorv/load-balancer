@@ -5,6 +5,7 @@ import (
 	"lb/internal/models/dto"
 	"lb/pkg/healthcheck"
 	"net/http"
+	"net/url"
 )
 
 type LoadBalancer interface {
@@ -12,4 +13,5 @@ type LoadBalancer interface {
 	DeleteBackend(backendDTO *dto.DeleteBackendRequest) error
 	ServerPool() *models.ServerPool
 	HealthChecker() *healthcheck.HealthChecker
+	MarkBackendStatus(serverUrl *url.URL, alive bool)
 }

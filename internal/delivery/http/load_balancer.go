@@ -130,8 +130,7 @@ func (h *LoadBalancerHandler) proxyErrorHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	pool := h.LoadBalancerUC.ServerPool()
-	pool.MarkBackendStatus(r.URL, false)
+	h.LoadBalancerUC.MarkBackendStatus(r.URL, false)
 
 	attempts := h.getAttemptsFromContext(r)
 	ctx := context.WithValue(r.Context(), models.Attempts, attempts+1)

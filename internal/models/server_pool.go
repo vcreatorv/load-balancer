@@ -2,7 +2,6 @@ package models
 
 import (
 	"log"
-	"net/url"
 	"sync/atomic"
 )
 
@@ -20,15 +19,6 @@ func (s *ServerPool) NextIndex() int {
 
 func (s *ServerPool) AddBackend(backend *Backend) {
 	s.Backends = append(s.Backends, backend)
-}
-
-func (s *ServerPool) MarkBackendStatus(serverUrl *url.URL, alive bool) {
-	for _, b := range s.Backends {
-		if b.URL.String() == serverUrl.String() {
-			b.SetAlive(alive)
-			return
-		}
-	}
 }
 
 func (s *ServerPool) GetNextPeer() *Backend {

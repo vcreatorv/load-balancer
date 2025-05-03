@@ -14,19 +14,19 @@ const (
 type Backend struct {
 	URL          *url.URL
 	Alive        bool
-	Mutex        sync.RWMutex
+	mu           sync.RWMutex
 	ReverseProxy *httputil.ReverseProxy
 }
 
 func (b *Backend) SetAlive(alive bool) {
-	b.Mutex.Lock()
+	b.mu.Lock()
 	b.Alive = alive
-	b.Mutex.Unlock()
+	b.mu.Unlock()
 }
 
 func (b *Backend) IsAlive() bool {
-	b.Mutex.Lock()
-	defer b.Mutex.Unlock()
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	return b.Alive
 }
 

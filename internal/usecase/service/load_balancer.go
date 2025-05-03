@@ -2,24 +2,29 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"lb/internal/models"
 	"lb/internal/models/dto"
 	"lb/pkg/healthcheck"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"sync"
 	"sync/atomic"
 )
 
 type LoadBalancerService struct {
 	serverPool *models.ServerPool
 	health     *healthcheck.HealthChecker
+	mu         sync.RWMutex
+	urlMap     map[string]*models.Backend
 }
 
 func NewLoadBalancerService() *LoadBalancerService {
 	return &LoadBalancerService{
 		serverPool: &models.ServerPool{},
 		health:     healthcheck.NewHealthChecker(),
+		urlMap:     make(map[string]*models.Backend),
 	}
 }
 
@@ -31,12 +36,21 @@ func (lb *LoadBalancerService) AddBackend(
 	if err != nil {
 		return err
 	}
+
+	lb.mu.Lock()
+	defer lb.mu.Unlock()
+
+	if _, exists := lb.urlMap[u.String()]; exists {
+		return fmt.Errorf("backend with url %s already exists", u.String())
+	}
+
 	proxy := httputil.NewSingleHostReverseProxy(u)
 
 	proxy.ErrorHandler = proxyErrorHandler
 	backend := models.NewBackend(u, proxy)
 
 	lb.serverPool.AddBackend(backend)
+	lb.urlMap[u.String()] = backend
 	return nil
 }
 
@@ -45,6 +59,11 @@ func (lb *LoadBalancerService) DeleteBackend(backendDTO *dto.DeleteBackendReques
 	if err != nil {
 		return err
 	}
+
+	lb.mu.Lock()
+	defer lb.mu.Unlock()
+
+	delete(lb.urlMap, u.String())
 
 	for i, b := range lb.serverPool.Backends {
 		if b.URL.String() == u.String() {
@@ -60,6 +79,15 @@ func (lb *LoadBalancerService) DeleteBackend(backendDTO *dto.DeleteBackendReques
 		}
 	}
 	return errors.New("backend not found")
+}
+
+func (lb *LoadBalancerService) MarkBackendStatus(serverUrl *url.URL, alive bool) {
+	lb.mu.RLock()
+	defer lb.mu.RUnlock()
+
+	if backend, exists := lb.urlMap[serverUrl.String()]; exists {
+		backend.SetAlive(alive)
+	}
 }
 
 func (lb *LoadBalancerService) ServerPool() *models.ServerPool {
