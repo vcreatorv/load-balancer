@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"lb/internal/models"
 	"lb/internal/models/dto"
@@ -32,7 +31,10 @@ func (lb *LoadBalancerService) AddBackend(u *url.URL, proxy *httputil.ReversePro
 	defer lb.mu.Unlock()
 
 	if _, exists := lb.urlMap[u.String()]; exists {
-		return fmt.Errorf("backend with url %s already exists", u.String())
+		return models.NewError(
+			models.ErrAlreadyExists,
+			fmt.Sprintf("A backend with this url already exists (%v)", u),
+		)
 	}
 
 	backend := models.NewBackend(u, proxy)
@@ -44,7 +46,10 @@ func (lb *LoadBalancerService) AddBackend(u *url.URL, proxy *httputil.ReversePro
 func (lb *LoadBalancerService) DeleteBackend(backendDTO *dto.DeleteBackendRequest) error {
 	u, err := url.Parse(backendDTO.ServerURL)
 	if err != nil {
-		return err
+		return models.NewError(
+			models.ErrBadRequest,
+			fmt.Sprintf("Invalid backend url: %v", backendDTO.ServerURL),
+		)
 	}
 
 	lb.mu.Lock()
@@ -65,7 +70,10 @@ func (lb *LoadBalancerService) DeleteBackend(backendDTO *dto.DeleteBackendReques
 			return nil
 		}
 	}
-	return errors.New("backend not found")
+	return models.NewError(
+		models.ErrNotFound,
+		fmt.Sprintf("Backend not found (%v)", backendDTO.ServerURL),
+	)
 }
 
 func (lb *LoadBalancerService) MarkBackendStatus(serverUrl *url.URL, alive bool) {

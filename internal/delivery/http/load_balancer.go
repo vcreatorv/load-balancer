@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"lb/internal/delivery/http/utils"
 	"lb/internal/models"
 	"lb/internal/models/dto"
 	"lb/internal/usecase"
@@ -40,30 +41,30 @@ func NewLoadBalancerHandler(loadBalancerUC usecase.LoadBalancer) *LoadBalancerHa
 
 func (h *LoadBalancerHandler) AddBackend(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method is not allowed", http.StatusMethodNotAllowed)
+		utils.WriteError(w, models.NewError(models.ErrForbidden, "method is not allowed"))
 		return
 	}
 	var backendDTO dto.AddBackendRequest
 	if err := json.NewDecoder(r.Body).Decode(&backendDTO); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		utils.WriteError(w, models.NewError(models.ErrBadRequest, err.Error()))
 		return
 	}
 
 	if err := backendDTO.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		utils.WriteError(w, models.NewError(models.ErrBadRequest, err.Error()))
 		return
 	}
 
 	u, err := url.Parse(backendDTO.ServerURL)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		utils.WriteError(w, models.NewError(models.ErrBadRequest, err.Error()))
 		return
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(u)
 	proxy.ErrorHandler = h.ProxyErrorHandler
 	if err := h.LoadBalancerUC.AddBackend(u, proxy); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		utils.WriteError(w, err)
 		return
 	}
 
@@ -72,23 +73,23 @@ func (h *LoadBalancerHandler) AddBackend(w http.ResponseWriter, r *http.Request)
 
 func (h *LoadBalancerHandler) DeleteBackend(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method is not allowed", http.StatusMethodNotAllowed)
+		utils.WriteError(w, models.NewError(models.ErrForbidden, "method is not allowed"))
 		return
 	}
 
 	var backendDTO dto.DeleteBackendRequest
 	if err := json.NewDecoder(r.Body).Decode(&backendDTO); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		utils.WriteError(w, models.NewError(models.ErrBadRequest, err.Error()))
 		return
 	}
 
 	if err := backendDTO.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		utils.WriteError(w, models.NewError(models.ErrBadRequest, err.Error()))
 		return
 	}
 
 	if err := h.LoadBalancerUC.DeleteBackend(&backendDTO); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		utils.WriteError(w, err)
 		return
 	}
 
@@ -99,7 +100,7 @@ func (h *LoadBalancerHandler) ForwardRequest(w http.ResponseWriter, r *http.Requ
 	attempts := h.getAttemptsFromContext(r)
 	if attempts > MAX_ATTEMPTS {
 		log.Printf("%s(%s) Max attempts reached, terminating\n", r.RemoteAddr, r.URL.Path)
-		http.Error(w, "service not available", http.StatusServiceUnavailable)
+		utils.WriteError(w, models.NewError(models.ErrInternal, "service not available"))
 		return
 	}
 
@@ -109,7 +110,7 @@ func (h *LoadBalancerHandler) ForwardRequest(w http.ResponseWriter, r *http.Requ
 		backend.ReverseProxy.ServeHTTP(w, r)
 		return
 	}
-	http.Error(w, "service not available", http.StatusServiceUnavailable)
+	utils.WriteError(w, models.NewError(models.ErrInternal, "service not available"))
 }
 
 func (h *LoadBalancerHandler) getAttemptsFromContext(r *http.Request) int {
