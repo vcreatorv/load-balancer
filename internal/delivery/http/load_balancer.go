@@ -8,6 +8,8 @@ import (
 	"lb/internal/usecase"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"time"
 )
 
@@ -52,7 +54,15 @@ func (h *LoadBalancerHandler) AddBackend(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.LoadBalancerUC.AddBackend(&backendDTO, h.proxyErrorHandler); err != nil {
+	u, err := url.Parse(backendDTO.ServerURL)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(u)
+	proxy.ErrorHandler = h.ProxyErrorHandler
+	if err := h.LoadBalancerUC.AddBackend(u, proxy); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -116,7 +126,7 @@ func (h *LoadBalancerHandler) getRetryFromContext(r *http.Request) int {
 	return 0
 }
 
-func (h *LoadBalancerHandler) proxyErrorHandler(w http.ResponseWriter, r *http.Request, e error) {
+func (h *LoadBalancerHandler) ProxyErrorHandler(w http.ResponseWriter, r *http.Request, e error) {
 	log.Printf("PROXY ERROR: [%s] %s\n", r.URL.Host, e.Error())
 
 	retries := h.getRetryFromContext(r)

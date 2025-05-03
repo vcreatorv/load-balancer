@@ -6,7 +6,6 @@ import (
 	"lb/internal/models"
 	"lb/internal/models/dto"
 	"lb/pkg/healthcheck"
-	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"sync"
@@ -28,15 +27,7 @@ func NewLoadBalancerService() *LoadBalancerService {
 	}
 }
 
-func (lb *LoadBalancerService) AddBackend(
-	backendDTO *dto.AddBackendRequest,
-	proxyErrorHandler func(w http.ResponseWriter, r *http.Request, err error),
-) error {
-	u, err := url.Parse(backendDTO.ServerURL)
-	if err != nil {
-		return err
-	}
-
+func (lb *LoadBalancerService) AddBackend(u *url.URL, proxy *httputil.ReverseProxy) error {
 	lb.mu.Lock()
 	defer lb.mu.Unlock()
 
@@ -44,11 +35,7 @@ func (lb *LoadBalancerService) AddBackend(
 		return fmt.Errorf("backend with url %s already exists", u.String())
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(u)
-
-	proxy.ErrorHandler = proxyErrorHandler
 	backend := models.NewBackend(u, proxy)
-
 	lb.serverPool.AddBackend(backend)
 	lb.urlMap[u.String()] = backend
 	return nil
