@@ -1,0 +1,90 @@
+{
+	"info": {
+		"_postman_id": "01c0e2c8-3f1d-4308-b4bc-204aec746216",
+		"name": "load-balancer",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "37173509"
+	},
+	"item": [
+		{
+			"name": "forward",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8090/loadbalancer/hello",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8090",
+					"path": [
+						"loadbalancer",
+						"hello"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "add_server",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"server_url\": \"http://localhost:8083/\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8090/loadbalancer/backend/add",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8090",
+					"path": [
+						"loadbalancer",
+						"backend",
+						"add"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "delete_server",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"server_url\": \"http://localhost:8081/\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8090/loadbalancer/backend/delete",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8090",
+					"path": [
+						"loadbalancer",
+						"backend",
+						"delete"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
