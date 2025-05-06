@@ -4,6 +4,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -16,6 +17,7 @@ type Backend struct {
 	Alive        bool
 	mu           sync.RWMutex
 	ReverseProxy *httputil.ReverseProxy
+	Connections  uint64
 }
 
 func (b *Backend) SetAlive(alive bool) {
@@ -30,10 +32,25 @@ func (b *Backend) IsAlive() bool {
 	return b.Alive
 }
 
+func (b *Backend) IncrementConnections() {
+	atomic.AddUint64(&b.Connections, uint64(1))
+}
+
+func (b *Backend) DecrementConnections() {
+	atomic.AddUint64(&b.Connections, ^uint64(0))
+}
+
+func (b *Backend) GetConnections() uint64 {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	return b.Connections
+}
+
 func NewBackend(serverURL *url.URL, proxy *httputil.ReverseProxy) *Backend {
 	return &Backend{
 		URL:          serverURL,
 		Alive:        true,
 		ReverseProxy: proxy,
+		Connections:  0,
 	}
 }

@@ -30,6 +30,7 @@ func (h *LoadBalancerHandler) Configure(r *http.ServeMux) {
 	loadBalancerMux.HandleFunc("POST /delete", h.DeleteBackend)
 
 	r.Handle("/backend/", http.StripPrefix("/backend", loadBalancerMux))
+	r.HandleFunc("/algorithm/set", h.SetAlgorithm)
 	r.HandleFunc("/", h.ForwardRequest)
 }
 
@@ -96,6 +97,38 @@ func (h *LoadBalancerHandler) DeleteBackend(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 }
 
+func (h *LoadBalancerHandler) SetAlgorithm(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		utils.WriteError(w, models.NewError(models.ErrForbidden, "method is not allowed"))
+		return
+	}
+
+	var algorithmDTO dto.SetAlgorithmRequest
+	if err := json.NewDecoder(r.Body).Decode(&algorithmDTO); err != nil {
+		utils.WriteError(w, models.NewError(models.ErrBadRequest, err.Error()))
+		return
+	}
+
+	if err := algorithmDTO.Validate(); err != nil {
+		utils.WriteError(w, models.NewError(models.ErrBadRequest, err.Error()))
+		return
+	}
+
+	var algorithm models.BalancingAlgorithm
+	switch algorithmDTO.Algorithm {
+	case "round-robin":
+		algorithm = models.RoundRobin
+	case "least-connections":
+		algorithm = models.LeastConnections
+	default:
+		utils.WriteError(w, models.NewError(models.ErrBadRequest, "unknown algorithm"))
+		return
+	}
+
+	h.LoadBalancerUC.SetBalancingAlgorithm(algorithm)
+	w.WriteHeader(http.StatusOK)
+}
+
 func (h *LoadBalancerHandler) ForwardRequest(w http.ResponseWriter, r *http.Request) {
 	attempts := h.getAttemptsFromContext(r)
 	if attempts > MAX_ATTEMPTS {
@@ -107,6 +140,10 @@ func (h *LoadBalancerHandler) ForwardRequest(w http.ResponseWriter, r *http.Requ
 	pool := h.LoadBalancerUC.ServerPool()
 	backend := pool.GetNextPeer()
 	if backend != nil {
+		defer backend.DecrementConnections()
+		ctx := context.WithValue(r.Context(), "backend", backend)
+		r = r.WithContext(ctx)
+
 		backend.ReverseProxy.ServeHTTP(w, r)
 		return
 	}

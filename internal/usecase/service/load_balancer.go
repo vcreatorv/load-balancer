@@ -20,9 +20,12 @@ type LoadBalancerService struct {
 
 func NewLoadBalancerService() *LoadBalancerService {
 	return &LoadBalancerService{
-		serverPool: &models.ServerPool{},
-		health:     healthcheck.NewHealthChecker(),
-		urlMap:     make(map[string]*models.Backend),
+		serverPool: &models.ServerPool{
+			Backends:  make([]*models.Backend, 0),
+			Algorithm: models.RoundRobin,
+		},
+		health: healthcheck.NewHealthChecker(),
+		urlMap: make(map[string]*models.Backend),
 	}
 }
 
@@ -83,6 +86,10 @@ func (lb *LoadBalancerService) MarkBackendStatus(serverUrl *url.URL, alive bool)
 	if backend, exists := lb.urlMap[serverUrl.String()]; exists {
 		backend.SetAlive(alive)
 	}
+}
+
+func (lb *LoadBalancerService) SetBalancingAlgorithm(algorithm models.BalancingAlgorithm) {
+	lb.serverPool.SetAlgorithm(algorithm)
 }
 
 func (lb *LoadBalancerService) ServerPool() *models.ServerPool {

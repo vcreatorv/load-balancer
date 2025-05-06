@@ -85,6 +85,36 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "switch_algorithm",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"algorithm\":\"round-robin\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8090/loadbalancer/algorithm/set",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8090",
+					"path": [
+						"loadbalancer",
+						"algorithm",
+						"set"
+					]
+				}
+			},
+			"response": []
 		}
 	]
 }

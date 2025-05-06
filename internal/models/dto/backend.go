@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"errors"
 	"github.com/asaskevich/govalidator"
 	"strings"
 )
@@ -11,6 +12,17 @@ type AddBackendRequest struct {
 
 type DeleteBackendRequest struct {
 	ServerURL string `json:"server_url" valid:"required,url"`
+}
+
+type SetAlgorithmRequest struct {
+	Algorithm string `json:"algorithm"`
+}
+
+func (r *SetAlgorithmRequest) Validate() error {
+	if r.Algorithm != "round-robin" && r.Algorithm != "least-connections" {
+		return errors.New("invalid algorithm, must be 'round-robin' or 'least-connections'")
+	}
+	return nil
 }
 
 func (a *AddBackendRequest) Validate() error {

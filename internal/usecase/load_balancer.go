@@ -14,4 +14,5 @@ type LoadBalancer interface {
 	ServerPool() *models.ServerPool
 	HealthChecker() *healthcheck.HealthChecker
 	MarkBackendStatus(serverUrl *url.URL, alive bool)
+	SetBalancingAlgorithm(algorithm models.BalancingAlgorithm)
 }
