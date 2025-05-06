@@ -59,7 +59,7 @@
 		{
 			"name": "delete_server",
 			"request": {
-				"method": "POST",
+				"method": "DELETE",
 				"header": [],
 				"body": {
 					"mode": "raw",

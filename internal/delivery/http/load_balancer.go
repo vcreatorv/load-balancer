@@ -27,7 +27,7 @@ func (h *LoadBalancerHandler) Configure(r *http.ServeMux) {
 	loadBalancerMux := http.NewServeMux()
 
 	loadBalancerMux.HandleFunc("POST /add", h.AddBackend)
-	loadBalancerMux.HandleFunc("POST /delete", h.DeleteBackend)
+	loadBalancerMux.HandleFunc("DELETE /delete", h.DeleteBackend)
 
 	r.Handle("/backend/", http.StripPrefix("/backend", loadBalancerMux))
 	r.HandleFunc("/algorithm/set", h.SetAlgorithm)
@@ -73,7 +73,7 @@ func (h *LoadBalancerHandler) AddBackend(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *LoadBalancerHandler) DeleteBackend(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodDelete {
 		utils.WriteError(w, models.NewError(models.ErrForbidden, "method is not allowed"))
 		return
 	}
