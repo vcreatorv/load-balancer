@@ -132,7 +132,7 @@ func (h *LoadBalancerHandler) SetAlgorithm(w http.ResponseWriter, r *http.Reques
 func (h *LoadBalancerHandler) ForwardRequest(w http.ResponseWriter, r *http.Request) {
 	attempts := h.getAttemptsFromContext(r)
 	if attempts > MAX_ATTEMPTS {
-		log.Printf("%s(%s) Max attempts reached, terminating\n", r.RemoteAddr, r.URL.Path)
+		log.Printf("Address=%s Request=%s Max attempts reached, terminating\n", r.RemoteAddr, r.URL.Path)
 		utils.WriteError(w, models.NewError(models.ErrInternal, "service not available"))
 		return
 	}
